@@ -15,6 +15,9 @@ public class Store {
     private Integer id;
     private String storeName;
 
+    @Enumerated(EnumType.STRING)
+    private StoreType storeType;
+
     @OneToOne(mappedBy = "store", cascade = CascadeType.ALL, orphanRemoval = true)
     private Catalog catalog;
 

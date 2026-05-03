@@ -2,6 +2,7 @@ package com.ben.storeservice.service;
 
 import com.ben.storeservice.model.RecModule;
 import com.ben.storeservice.repo.RecModuleRepo;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,9 +34,10 @@ public class RecService {
     }
 
     public ResponseEntity<List<RecModule>> generateRecs(List<Integer> recIds) {
-        return new ResponseEntity<>(new ArrayList<>(), HttpStatus.OK);
+        return new ResponseEntity<>(new ArrayList<>(), HttpStatus.NOT_IMPLEMENTED);
     }
 
+    @Transactional
     public ResponseEntity<String> updateRec(Integer storeId, Integer recId, RecModule newRec) {
         Optional<RecModule> rec = recModuleRepo.findById(recId);
         if (rec.isEmpty()) {
@@ -48,22 +50,26 @@ public class RecService {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
 
-        oldRec.setName(newRec.getName());
-        oldRec.setN(newRec.getN());
-        oldRec.setRecType(newRec.getRecType());
+        if (newRec.getName() != null) oldRec.setName(newRec.getName());
+        if (newRec.getN() != null) oldRec.setN(newRec.getN());
+        if (newRec.getRecType() != null) oldRec.setRecType(newRec.getRecType());
+
         recModuleRepo.save(oldRec);
         return new ResponseEntity<>("Success", HttpStatus.OK);
     }
 
     public ResponseEntity<String> deleteRec(Integer storeId, Integer recId) {
-        RecModule rec = recModuleRepo.findById(recId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "RecModule not found with id: " + recId));
+        Optional<RecModule> recOpt = recModuleRepo.findById(recId);
+        if (recOpt.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        RecModule rec = recOpt.get();
 
         if (!rec.getStore().getId().equals(storeId)) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
 
         recModuleRepo.deleteById(recId);
-        return new ResponseEntity<>("Deleted", HttpStatus.NO_CONTENT);
+        return new ResponseEntity<>("Deleted", HttpStatus.OK);
     }
 }

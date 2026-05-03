@@ -1,5 +1,6 @@
 package com.ben.storeservice.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
@@ -17,9 +18,13 @@ public class RecModule {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     private String name;
+
+    @Enumerated(EnumType.STRING)
     private RecType recType;
+    @Column(nullable = false)
     private Integer n;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id")
     private Store store;
