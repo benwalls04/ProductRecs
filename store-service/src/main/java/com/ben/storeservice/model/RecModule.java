@@ -23,4 +23,7 @@ public class RecModule {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id")
     private Store store;
+
+    @Transient
+    private List<ProductRec> items;
 }
