@@ -14,7 +14,10 @@ public class Product {
     private Integer id;
     @Column(nullable = false)
     private String name;
+    private String description;
     private Double price;
+    private String category;
+    private Double rating;
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
