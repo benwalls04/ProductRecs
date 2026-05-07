@@ -1,6 +1,7 @@
 package com.ben.storeservice.model.data;
 
 import com.ben.storeservice.model.Product;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -12,8 +13,8 @@ public class DummyRetriever implements DataRetriever {
 
     private final RestClient restClient;
 
-    public DummyRetriever() {
-        this.restClient = RestClient.create("https://dummyjson.com");
+    public DummyRetriever(@Qualifier("dummyJsonClient") RestClient restClient) {
+        this.restClient = restClient;
     }
 
     @Override

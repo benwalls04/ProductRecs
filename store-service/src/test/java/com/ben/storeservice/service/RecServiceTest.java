@@ -29,13 +29,23 @@ class RecServiceTest {
     private RecService recService;
 
     private Store storeWithId(int id) {
-        Store store = TestFixtures.bestBuyStore();
+        Store store = TestFixtures.dummyJsonStore();
         store.setId(id);
         return store;
     }
 
     private RecModule recModuleForStore(int storeId) {
         return TestFixtures.recModule("Top Picks", 5, storeWithId(storeId));
+    }
+
+    @Test
+    void getAllRecs_returnsEmptyList_whenStoreHasNoModules() {
+        when(recModuleRepo.findAllByStoreId(1)).thenReturn(List.of());
+
+        ResponseEntity<List<RecModule>> response = recService.getAllRecs(1);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEmpty();
     }
 
     @Test

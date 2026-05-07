@@ -14,12 +14,8 @@ public class TestFixtures {
         return store;
     }
 
-    public static Store bestBuyStore() {
-        return store("Best Buy", StoreType.BEST_BUY);
-    }
-
-    public static Store openFoodStore() {
-        return store("Open Food", StoreType.OPEN_FOOD);
+    public static Store dummyJsonStore() {
+        return store("DummyJSON", StoreType.DUMMY_JSON);
     }
 
     public static Catalog catalog(Store store) {
@@ -38,6 +34,27 @@ public class TestFixtures {
 
     public static Product product(String name, Double price) {
         return product(name, price, null);
+    }
+
+    public static Product product(String name, Double price, String description, String category, Double rating) {
+        Product p = product(name, price, null);
+        p.setDescription(description);
+        p.setCategory(category);
+        p.setRating(rating);
+        return p;
+    }
+
+    public static Product product(String name, Double price, String description, String category, Double rating, Catalog catalog) {
+        Product p = product(name, price, description, category, rating);
+        p.setCatalog(catalog);
+        return p;
+    }
+
+    public static Catalog emptyCatalog(Store store) {
+        Catalog catalog = new Catalog();
+        catalog.setStore(store);
+        catalog.setProductList(new ArrayList<>());
+        return catalog;
     }
 
     public static RecModule recModule(String name, Integer n, RecType recType, Store store) {

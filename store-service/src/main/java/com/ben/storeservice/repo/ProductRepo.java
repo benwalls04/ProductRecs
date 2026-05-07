@@ -7,12 +7,15 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
 public interface ProductRepo extends JpaRepository<Product, Integer> {
     List<Product> findAllByCatalog(Catalog catalog);
 
-    @Query(value = "SELECT EXTRACT(EPOCH FROM (NOW() - MAX(created_at)))/3600 FROM product WHERE catalog_id = :catalogId", nativeQuery = true)
-    Double hoursSinceLastCreated(@Param("catalogId") Integer catalogId);
+    @Query("SELECT MAX(p.createdAt) FROM Product p WHERE p.catalog.id = :catalogId")
+    LocalDateTime latestCreatedAt(@Param("catalogId") Integer catalogId);
+
+    void deleteByCatalogId(Integer catalogId);
 }

@@ -43,7 +43,7 @@ class StoreIntegrationTest {
 
     @Test
     void createStore_persistsToDatabase() throws Exception {
-        Store store = TestFixtures.bestBuyStore();
+        Store store = TestFixtures.dummyJsonStore();
 
         mockMvc.perform(post("/store")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -52,7 +52,7 @@ class StoreIntegrationTest {
                 .andExpect(content().string("Success"));
 
         assertThat(storeRepo.findAll()).hasSize(1);
-        assertThat(storeRepo.findAll().get(0).getStoreName()).isEqualTo("Best Buy");
-        assertThat(storeRepo.findAll().get(0).getStoreType()).isEqualTo(StoreType.BEST_BUY);
+        assertThat(storeRepo.findAll().get(0).getStoreName()).isEqualTo("DummyJSON");
+        assertThat(storeRepo.findAll().get(0).getStoreType()).isEqualTo(StoreType.DUMMY_JSON);
     }
 }

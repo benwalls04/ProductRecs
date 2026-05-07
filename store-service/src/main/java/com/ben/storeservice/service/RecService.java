@@ -2,8 +2,7 @@ package com.ben.storeservice.service;
 
 import com.ben.storeservice.model.RecModule;
 import com.ben.storeservice.repo.RecModuleRepo;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -50,14 +49,18 @@ public class RecService {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
 
-        if (newRec.getName() != null) oldRec.setName(newRec.getName());
-        if (newRec.getN() != null) oldRec.setN(newRec.getN());
-        if (newRec.getRecType() != null) oldRec.setRecType(newRec.getRecType());
+        if (newRec.getName() != null)
+            oldRec.setName(newRec.getName());
+        if (newRec.getN() != null)
+            oldRec.setN(newRec.getN());
+        if (newRec.getRecType() != null)
+            oldRec.setRecType(newRec.getRecType());
 
         recModuleRepo.save(oldRec);
         return new ResponseEntity<>("Success", HttpStatus.OK);
     }
 
+    @Transactional
     public ResponseEntity<String> deleteRec(Integer storeId, Integer recId) {
         Optional<RecModule> recOpt = recModuleRepo.findById(recId);
         if (recOpt.isEmpty()) {

@@ -46,7 +46,7 @@ class StoreControllerTest {
 
         mockMvc.perform(post("/store")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(TestFixtures.bestBuyStore())))
+                        .content(objectMapper.writeValueAsString(TestFixtures.dummyJsonStore())))
                 .andExpect(status().isCreated())
                 .andExpect(content().string("Success"));
     }

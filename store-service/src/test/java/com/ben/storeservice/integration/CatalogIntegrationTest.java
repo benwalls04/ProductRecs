@@ -17,8 +17,11 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -48,7 +51,7 @@ class CatalogIntegrationTest {
 
     @Test
     void getAllProducts_returns200WithProductsFromDb() throws Exception {
-        Store store = storeRepo.save(TestFixtures.bestBuyStore());
+        Store store = storeRepo.save(TestFixtures.dummyJsonStore());
         Catalog catalog = catalogRepo.save(TestFixtures.catalog(store));
         productRepo.save(TestFixtures.product("Laptop", 999.99, catalog));
         productRepo.save(TestFixtures.product("Phone", 499.99, catalog));
@@ -68,7 +71,7 @@ class CatalogIntegrationTest {
 
     @Test
     void getProduct_returns200_whenProductBelongsToCatalog() throws Exception {
-        Store store = storeRepo.save(TestFixtures.bestBuyStore());
+        Store store = storeRepo.save(TestFixtures.dummyJsonStore());
         Catalog catalog = catalogRepo.save(TestFixtures.catalog(store));
         Product product = productRepo.save(TestFixtures.product("Laptop", 999.99, catalog));
 
@@ -80,7 +83,7 @@ class CatalogIntegrationTest {
 
     @Test
     void getProduct_returns404_whenProductDoesNotExist() throws Exception {
-        Store store = storeRepo.save(TestFixtures.bestBuyStore());
+        Store store = storeRepo.save(TestFixtures.dummyJsonStore());
         Catalog catalog = catalogRepo.save(TestFixtures.catalog(store));
 
         mockMvc.perform(get("/catalog/" + catalog.getId() + "/9999"))
@@ -88,11 +91,29 @@ class CatalogIntegrationTest {
     }
 
     @Test
+    void createCatalog_returns201_andPersists() throws Exception {
+        Store store = storeRepo.save(TestFixtures.dummyJsonStore());
+
+        mockMvc.perform(post("/catalog/" + store.getId()))
+                .andExpect(status().isCreated())
+                .andExpect(content().string("Catalog created"));
+
+        assertThat(catalogRepo.findAll()).hasSize(1);
+        assertThat(catalogRepo.findAll().get(0).getStore().getId()).isEqualTo(store.getId());
+    }
+
+    @Test
+    void createCatalog_returns404_whenStoreNotFound() throws Exception {
+        mockMvc.perform(post("/catalog/9999"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void getProduct_returns404_whenProductBelongsToDifferentCatalog() throws Exception {
-        Store store1 = storeRepo.save(TestFixtures.bestBuyStore());
+        Store store1 = storeRepo.save(TestFixtures.dummyJsonStore());
         Catalog catalog1 = catalogRepo.save(TestFixtures.catalog(store1));
 
-        Store store2 = storeRepo.save(TestFixtures.openFoodStore());
+        Store store2 = storeRepo.save(TestFixtures.dummyJsonStore());
         Catalog catalog2 = catalogRepo.save(TestFixtures.catalog(store2));
         Product product = productRepo.save(TestFixtures.product("Laptop", 999.99, catalog2));
 

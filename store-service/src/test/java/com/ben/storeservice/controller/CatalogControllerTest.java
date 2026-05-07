@@ -18,6 +18,8 @@ import java.util.List;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -76,6 +78,25 @@ class CatalogControllerTest {
                 .thenReturn(new ResponseEntity<>(HttpStatus.NOT_FOUND));
 
         mockMvc.perform(get("/catalog/1/99"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void createCatalog_returns201_whenStoreExists() throws Exception {
+        when(catalogService.createCatalog(1))
+                .thenReturn(new ResponseEntity<>("Catalog created", HttpStatus.CREATED));
+
+        mockMvc.perform(post("/catalog/1"))
+                .andExpect(status().isCreated())
+                .andExpect(content().string("Catalog created"));
+    }
+
+    @Test
+    void createCatalog_returns404_whenStoreNotFound() throws Exception {
+        when(catalogService.createCatalog(99))
+                .thenReturn(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+
+        mockMvc.perform(post("/catalog/99"))
                 .andExpect(status().isNotFound());
     }
 }

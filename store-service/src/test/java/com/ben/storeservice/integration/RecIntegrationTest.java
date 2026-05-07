@@ -47,7 +47,7 @@ class RecIntegrationTest {
 
     @Test
     void getAllRecs_returnsAllModulesForStore() throws Exception {
-        Store store = storeRepo.save(TestFixtures.bestBuyStore());
+        Store store = storeRepo.save(TestFixtures.dummyJsonStore());
         recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, store));
         recModuleRepo.save(TestFixtures.recModule("New Arrivals", 10, store));
 
@@ -60,7 +60,7 @@ class RecIntegrationTest {
 
     @Test
     void getAllRecs_returnsEmptyList_whenStoreHasNoModules() throws Exception {
-        Store store = storeRepo.save(TestFixtures.bestBuyStore());
+        Store store = storeRepo.save(TestFixtures.dummyJsonStore());
 
         mockMvc.perform(get("/rec/" + store.getId()))
                 .andExpect(status().isOk())
@@ -69,7 +69,7 @@ class RecIntegrationTest {
 
     @Test
     void getRec_returns200_whenFoundAndStoreMatches() throws Exception {
-        Store store = storeRepo.save(TestFixtures.bestBuyStore());
+        Store store = storeRepo.save(TestFixtures.dummyJsonStore());
         RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, store));
 
         mockMvc.perform(get("/rec/" + store.getId() + "/" + rec.getId()))
@@ -80,8 +80,8 @@ class RecIntegrationTest {
 
     @Test
     void getRec_returns404_whenStoreMismatch() throws Exception {
-        Store store1 = storeRepo.save(TestFixtures.bestBuyStore());
-        Store store2 = storeRepo.save(TestFixtures.openFoodStore());
+        Store store1 = storeRepo.save(TestFixtures.dummyJsonStore());
+        Store store2 = storeRepo.save(TestFixtures.dummyJsonStore());
         RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, store2));
 
         mockMvc.perform(get("/rec/" + store1.getId() + "/" + rec.getId()))
@@ -98,7 +98,7 @@ class RecIntegrationTest {
 
     @Test
     void updateRec_persistsChangesToDatabase() throws Exception {
-        Store store = storeRepo.save(TestFixtures.bestBuyStore());
+        Store store = storeRepo.save(TestFixtures.dummyJsonStore());
         RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, store));
 
         mockMvc.perform(put("/rec/" + store.getId() + "/" + rec.getId())
@@ -114,8 +114,8 @@ class RecIntegrationTest {
 
     @Test
     void updateRec_returns403_whenStoreMismatch() throws Exception {
-        Store store1 = storeRepo.save(TestFixtures.bestBuyStore());
-        Store store2 = storeRepo.save(TestFixtures.openFoodStore());
+        Store store1 = storeRepo.save(TestFixtures.dummyJsonStore());
+        Store store2 = storeRepo.save(TestFixtures.dummyJsonStore());
         RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, store2));
 
         mockMvc.perform(put("/rec/" + store1.getId() + "/" + rec.getId())
@@ -126,7 +126,7 @@ class RecIntegrationTest {
 
     @Test
     void deleteRec_removesFromDatabase() throws Exception {
-        Store store = storeRepo.save(TestFixtures.bestBuyStore());
+        Store store = storeRepo.save(TestFixtures.dummyJsonStore());
         RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, store));
 
         mockMvc.perform(delete("/rec/" + store.getId() + "/" + rec.getId()))
@@ -138,8 +138,8 @@ class RecIntegrationTest {
 
     @Test
     void deleteRec_returns403_whenStoreMismatch() throws Exception {
-        Store store1 = storeRepo.save(TestFixtures.bestBuyStore());
-        Store store2 = storeRepo.save(TestFixtures.openFoodStore());
+        Store store1 = storeRepo.save(TestFixtures.dummyJsonStore());
+        Store store2 = storeRepo.save(TestFixtures.dummyJsonStore());
         RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, store2));
 
         mockMvc.perform(delete("/rec/" + store1.getId() + "/" + rec.getId()))

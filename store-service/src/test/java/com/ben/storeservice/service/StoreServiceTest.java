@@ -25,7 +25,7 @@ class StoreServiceTest {
 
     @Test
     void createStore_savesStoreAndReturns201() {
-        Store store = TestFixtures.bestBuyStore();
+        Store store = TestFixtures.dummyJsonStore();
 
         ResponseEntity<String> response = storeService.createStore(store);
 
