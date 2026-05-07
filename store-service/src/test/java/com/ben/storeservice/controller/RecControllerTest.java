@@ -51,6 +51,29 @@ class RecControllerTest {
     }
 
     @Test
+    void createRec_returns201() throws Exception {
+        when(recService.createRec(eq(1), any(RecModule.class)))
+                .thenReturn(new ResponseEntity<>("Created", HttpStatus.CREATED));
+
+        mockMvc.perform(post("/rec/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(simpleRec("Top Picks", 5))))
+                .andExpect(status().isCreated())
+                .andExpect(content().string("Created"));
+    }
+
+    @Test
+    void createRec_returns404_whenStoreNotFound() throws Exception {
+        when(recService.createRec(eq(99), any(RecModule.class)))
+                .thenReturn(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+
+        mockMvc.perform(post("/rec/99")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(simpleRec("Top Picks", 5))))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void getAllRecs_returns200WithList() throws Exception {
         when(recService.getAllRecs(1))
                 .thenReturn(new ResponseEntity<>(List.of(simpleRec("Top Picks", 5)), HttpStatus.OK));
@@ -79,14 +102,14 @@ class RecControllerTest {
     }
 
     @Test
-    void generateRecs_returns501() throws Exception {
+    void generateRecs_returns200() throws Exception {
         when(recService.generateRecs(any()))
-                .thenReturn(new ResponseEntity<>(List.of(), HttpStatus.NOT_IMPLEMENTED));
+                .thenReturn(new ResponseEntity<>(java.util.Map.of(), HttpStatus.OK));
 
         mockMvc.perform(post("/rec/generate")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("[1, 2, 3]"))
-                .andExpect(status().isNotImplemented());
+                        .content("{\"recIds\": [1, 2, 3]}"))
+                .andExpect(status().isOk());
     }
 
     @Test

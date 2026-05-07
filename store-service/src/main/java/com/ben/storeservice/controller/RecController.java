@@ -1,12 +1,13 @@
 package com.ben.storeservice.controller;
 
+import com.ben.storeservice.model.GenerateRecsRequest;
 import com.ben.storeservice.model.RecModule;
 import com.ben.storeservice.service.RecService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/rec")
@@ -16,6 +17,11 @@ public class RecController {
 
     public RecController(RecService recService) {
         this.recService = recService;
+    }
+
+    @PostMapping("/{storeId}")
+    public ResponseEntity<String> createRec(@PathVariable Integer storeId, @RequestBody RecModule recModule) {
+        return recService.createRec(storeId, recModule);
     }
 
     @GetMapping("/{storeId}")
@@ -29,8 +35,8 @@ public class RecController {
     }
 
     @PostMapping("/generate")
-    public ResponseEntity<List<RecModule>> generateRecs(@RequestBody List<Integer> recIds) {
-        return recService.generateRecs(recIds);
+    public ResponseEntity<Map<Integer, RecModule>> generateRecs(@RequestBody GenerateRecsRequest request) {
+        return recService.generateRecs(request);
     }
 
     @DeleteMapping("/{storeId}/{recId}")
@@ -39,7 +45,8 @@ public class RecController {
     }
 
     @PutMapping("/{storeId}/{recId}")
-    public ResponseEntity<String> updateRec(@PathVariable Integer storeId, @PathVariable Integer recId, @RequestBody RecModule newRec) {
+    public ResponseEntity<String> updateRec(@PathVariable Integer storeId, @PathVariable Integer recId,
+            @RequestBody RecModule newRec) {
         return recService.updateRec(storeId, recId, newRec);
     }
 }

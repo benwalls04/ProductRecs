@@ -46,6 +46,28 @@ class RecIntegrationTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
+    void createRec_persistsToDatabase() throws Exception {
+        Store store = storeRepo.save(TestFixtures.dummyJsonStore());
+
+        mockMvc.perform(post("/rec/" + store.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Top Picks\", \"n\": 5, \"recType\": \"POPULARITY\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(content().string("Created"));
+
+        assertThat(recModuleRepo.findAllByStoreId(store.getId())).hasSize(1);
+        assertThat(recModuleRepo.findAllByStoreId(store.getId()).get(0).getName()).isEqualTo("Top Picks");
+    }
+
+    @Test
+    void createRec_returns404_whenStoreNotFound() throws Exception {
+        mockMvc.perform(post("/rec/9999")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Top Picks\", \"n\": 5, \"recType\": \"POPULARITY\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void getAllRecs_returnsAllModulesForStore() throws Exception {
         Store store = storeRepo.save(TestFixtures.dummyJsonStore());
         recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, store));
@@ -89,11 +111,34 @@ class RecIntegrationTest {
     }
 
     @Test
-    void generateRecs_returns501() throws Exception {
+    void generateRecs_returns200_withPopulatedItems() throws Exception {
+        Store store = storeRepo.save(TestFixtures.dummyJsonStore());
+        com.ben.storeservice.repo.CatalogRepo catalogRepo = webApplicationContext
+                .getBean(com.ben.storeservice.repo.CatalogRepo.class);
+        com.ben.storeservice.repo.ProductRepo productRepo = webApplicationContext
+                .getBean(com.ben.storeservice.repo.ProductRepo.class);
+
+        com.ben.storeservice.model.Catalog catalog = catalogRepo.save(TestFixtures.catalog(store));
+        store.setCatalog(catalog);
+        productRepo.save(TestFixtures.product("Laptop", 999.99, "desc", "electronics", 4.8, catalog));
+
+        RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, store));
+
         mockMvc.perform(post("/rec/generate")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("[1, 2, 3]"))
-                .andExpect(status().isNotImplemented());
+                        .content("{\"recIds\": [" + rec.getId() + "]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$." + rec.getId() + ".name").value("Top Picks"))
+                .andExpect(jsonPath("$." + rec.getId() + ".items[0].product.name").value("Laptop"));
+    }
+
+    @Test
+    void generateRecs_skipsUnknownIds() throws Exception {
+        mockMvc.perform(post("/rec/generate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"recIds\": [9999]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.9999").doesNotExist());
     }
 
     @Test

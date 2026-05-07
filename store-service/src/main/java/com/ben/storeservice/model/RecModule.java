@@ -23,7 +23,6 @@ public class RecModule {
     private RecType recType;
     @Column(nullable = false)
     private Integer n;
-
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id")
