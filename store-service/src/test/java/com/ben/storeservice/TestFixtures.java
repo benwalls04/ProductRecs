@@ -57,17 +57,28 @@ public class TestFixtures {
         return catalog;
     }
 
-    public static RecModule recModule(String name, Integer n, RecType recType, Store store) {
+    public static Page page(String name, Store store) {
+        Page page = new Page();
+        page.setName(name);
+        page.setStore(store);
+        return page;
+    }
+
+    public static Page page(Store store) {
+        return page("Home", store);
+    }
+
+    public static RecModule recModule(String name, Integer n, RecType recType, Page page) {
         RecModule rec = new RecModule();
         rec.setName(name);
         rec.setN(n);
         rec.setRecType(recType);
-        rec.setStore(store);
+        rec.setPage(page);
         return rec;
     }
 
-    public static RecModule recModule(String name, Integer n, Store store) {
-        return recModule(name, n, RecType.POPULARITY, store);
+    public static RecModule recModule(String name, Integer n, Page page) {
+        return recModule(name, n, RecType.POPULARITY, page);
     }
 
     public static ProductRec productRec(Product product, double score) {

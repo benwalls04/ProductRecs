@@ -19,7 +19,7 @@ public class Catalog {
     private List<Product> productList;
 
     @JsonIgnore
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name="store_id")
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 }

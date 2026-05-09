@@ -52,10 +52,10 @@ class RecControllerTest {
 
     @Test
     void createRec_returns201() throws Exception {
-        when(recService.createRec(eq(1), any(RecModule.class)))
+        when(recService.createRec(eq(1), eq(5), any(RecModule.class)))
                 .thenReturn(new ResponseEntity<>("Created", HttpStatus.CREATED));
 
-        mockMvc.perform(post("/rec/1")
+        mockMvc.perform(post("/rec/1?pageId=5")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(simpleRec("Top Picks", 5))))
                 .andExpect(status().isCreated())
@@ -63,11 +63,11 @@ class RecControllerTest {
     }
 
     @Test
-    void createRec_returns404_whenStoreNotFound() throws Exception {
-        when(recService.createRec(eq(99), any(RecModule.class)))
+    void createRec_returns404_whenPageNotFound() throws Exception {
+        when(recService.createRec(eq(1), eq(99), any(RecModule.class)))
                 .thenReturn(new ResponseEntity<>(HttpStatus.NOT_FOUND));
 
-        mockMvc.perform(post("/rec/99")
+        mockMvc.perform(post("/rec/1?pageId=99")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(simpleRec("Top Picks", 5))))
                 .andExpect(status().isNotFound());
@@ -108,7 +108,7 @@ class RecControllerTest {
 
         mockMvc.perform(post("/rec/generate")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"recIds\": [1, 2, 3]}"))
+                        .content("{\"pageId\": 1}"))
                 .andExpect(status().isOk());
     }
 

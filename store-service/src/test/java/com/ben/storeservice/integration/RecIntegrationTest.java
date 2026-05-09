@@ -1,8 +1,10 @@
 package com.ben.storeservice.integration;
 
 import com.ben.storeservice.TestFixtures;
+import com.ben.storeservice.model.Page;
 import com.ben.storeservice.model.RecModule;
 import com.ben.storeservice.model.Store;
+import com.ben.storeservice.repo.PageRepo;
 import com.ben.storeservice.repo.RecModuleRepo;
 import com.ben.storeservice.repo.StoreRepo;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -43,25 +45,31 @@ class RecIntegrationTest {
     @Autowired
     private RecModuleRepo recModuleRepo;
 
+    @Autowired
+    private PageRepo pageRepo;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     void createRec_persistsToDatabase() throws Exception {
         Store store = storeRepo.save(TestFixtures.dummyJsonStore());
+        Page page = pageRepo.save(TestFixtures.page(store));
 
-        mockMvc.perform(post("/rec/" + store.getId())
+        mockMvc.perform(post("/rec/" + store.getId() + "?pageId=" + page.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\": \"Top Picks\", \"n\": 5, \"recType\": \"POPULARITY\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(content().string("Created"));
 
-        assertThat(recModuleRepo.findAllByStoreId(store.getId())).hasSize(1);
-        assertThat(recModuleRepo.findAllByStoreId(store.getId()).get(0).getName()).isEqualTo("Top Picks");
+        assertThat(recModuleRepo.findAllByPageId(page.getId())).hasSize(1);
+        assertThat(recModuleRepo.findAllByPageId(page.getId()).get(0).getName()).isEqualTo("Top Picks");
     }
 
     @Test
-    void createRec_returns404_whenStoreNotFound() throws Exception {
-        mockMvc.perform(post("/rec/9999")
+    void createRec_returns404_whenPageNotFound() throws Exception {
+        Store store = storeRepo.save(TestFixtures.dummyJsonStore());
+
+        mockMvc.perform(post("/rec/" + store.getId() + "?pageId=9999")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\": \"Top Picks\", \"n\": 5, \"recType\": \"POPULARITY\"}"))
                 .andExpect(status().isNotFound());
@@ -70,8 +78,9 @@ class RecIntegrationTest {
     @Test
     void getAllRecs_returnsAllModulesForStore() throws Exception {
         Store store = storeRepo.save(TestFixtures.dummyJsonStore());
-        recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, store));
-        recModuleRepo.save(TestFixtures.recModule("New Arrivals", 10, store));
+        Page page = pageRepo.save(TestFixtures.page(store));
+        recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, page));
+        recModuleRepo.save(TestFixtures.recModule("New Arrivals", 10, page));
 
         mockMvc.perform(get("/rec/" + store.getId()))
                 .andExpect(status().isOk())
@@ -92,7 +101,8 @@ class RecIntegrationTest {
     @Test
     void getRec_returns200_whenFoundAndStoreMatches() throws Exception {
         Store store = storeRepo.save(TestFixtures.dummyJsonStore());
-        RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, store));
+        Page page = pageRepo.save(TestFixtures.page(store));
+        RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, page));
 
         mockMvc.perform(get("/rec/" + store.getId() + "/" + rec.getId()))
                 .andExpect(status().isOk())
@@ -104,7 +114,8 @@ class RecIntegrationTest {
     void getRec_returns404_whenStoreMismatch() throws Exception {
         Store store1 = storeRepo.save(TestFixtures.dummyJsonStore());
         Store store2 = storeRepo.save(TestFixtures.dummyJsonStore());
-        RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, store2));
+        Page page2 = pageRepo.save(TestFixtures.page(store2));
+        RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, page2));
 
         mockMvc.perform(get("/rec/" + store1.getId() + "/" + rec.getId()))
                 .andExpect(status().isNotFound());
@@ -122,29 +133,31 @@ class RecIntegrationTest {
         store.setCatalog(catalog);
         productRepo.save(TestFixtures.product("Laptop", 999.99, "desc", "electronics", 4.8, catalog));
 
-        RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, store));
+        Page page = pageRepo.save(TestFixtures.page(store));
+        RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, page));
 
         mockMvc.perform(post("/rec/generate")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"recIds\": [" + rec.getId() + "]}"))
+                        .content("{\"pageId\": " + page.getId() + "}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$." + rec.getId() + ".name").value("Top Picks"))
                 .andExpect(jsonPath("$." + rec.getId() + ".items[0].product.name").value("Laptop"));
     }
 
     @Test
-    void generateRecs_skipsUnknownIds() throws Exception {
+    void generateRecs_returnsEmptyMap_whenPageHasNoModules() throws Exception {
         mockMvc.perform(post("/rec/generate")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"recIds\": [9999]}"))
+                        .content("{\"pageId\": 9999}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.9999").doesNotExist());
+                .andExpect(jsonPath("$").isEmpty());
     }
 
     @Test
     void updateRec_persistsChangesToDatabase() throws Exception {
         Store store = storeRepo.save(TestFixtures.dummyJsonStore());
-        RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, store));
+        Page page = pageRepo.save(TestFixtures.page(store));
+        RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, page));
 
         mockMvc.perform(put("/rec/" + store.getId() + "/" + rec.getId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -161,7 +174,8 @@ class RecIntegrationTest {
     void updateRec_returns403_whenStoreMismatch() throws Exception {
         Store store1 = storeRepo.save(TestFixtures.dummyJsonStore());
         Store store2 = storeRepo.save(TestFixtures.dummyJsonStore());
-        RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, store2));
+        Page page2 = pageRepo.save(TestFixtures.page(store2));
+        RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, page2));
 
         mockMvc.perform(put("/rec/" + store1.getId() + "/" + rec.getId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -172,7 +186,8 @@ class RecIntegrationTest {
     @Test
     void deleteRec_removesFromDatabase() throws Exception {
         Store store = storeRepo.save(TestFixtures.dummyJsonStore());
-        RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, store));
+        Page page = pageRepo.save(TestFixtures.page(store));
+        RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, page));
 
         mockMvc.perform(delete("/rec/" + store.getId() + "/" + rec.getId()))
                 .andExpect(status().isOk())
@@ -185,7 +200,8 @@ class RecIntegrationTest {
     void deleteRec_returns403_whenStoreMismatch() throws Exception {
         Store store1 = storeRepo.save(TestFixtures.dummyJsonStore());
         Store store2 = storeRepo.save(TestFixtures.dummyJsonStore());
-        RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, store2));
+        Page page2 = pageRepo.save(TestFixtures.page(store2));
+        RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, page2));
 
         mockMvc.perform(delete("/rec/" + store1.getId() + "/" + rec.getId()))
                 .andExpect(status().isForbidden());

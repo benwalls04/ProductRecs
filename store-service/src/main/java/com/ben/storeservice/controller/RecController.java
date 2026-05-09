@@ -20,8 +20,9 @@ public class RecController {
     }
 
     @PostMapping("/{storeId}")
-    public ResponseEntity<String> createRec(@PathVariable Integer storeId, @RequestBody RecModule recModule) {
-        return recService.createRec(storeId, recModule);
+    public ResponseEntity<String> createRec(@PathVariable Integer storeId, @RequestParam Integer pageId,
+            @RequestBody RecModule recModule) {
+        return recService.createRec(storeId, pageId, recModule);
     }
 
     @GetMapping("/{storeId}")

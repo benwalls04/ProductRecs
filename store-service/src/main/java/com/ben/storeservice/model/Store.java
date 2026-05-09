@@ -7,7 +7,7 @@ import java.util.List;
 
 @Getter
 @Setter
-@ToString(exclude = "recModules")
+@ToString(exclude = "pages")
 @Entity
 public class Store {
     @Id
@@ -22,5 +22,5 @@ public class Store {
     private Catalog catalog;
 
     @OneToMany(mappedBy = "store", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<RecModule> recModules;
+    private List<Page> pages;
 }

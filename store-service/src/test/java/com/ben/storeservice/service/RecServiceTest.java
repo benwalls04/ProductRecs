@@ -3,9 +3,9 @@ package com.ben.storeservice.service;
 import com.ben.storeservice.TestFixtures;
 import com.ben.storeservice.model.*;
 import com.ben.storeservice.model.GenerateRecsRequest;
+import com.ben.storeservice.repo.PageRepo;
 import com.ben.storeservice.repo.ProductRepo;
 import com.ben.storeservice.repo.RecModuleRepo;
-import com.ben.storeservice.repo.StoreRepo;
 import com.ben.storeservice.service.rec.CategoryHandler;
 import com.ben.storeservice.service.rec.PopularityHandler;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,13 +29,13 @@ class RecServiceTest {
 
     @Mock private RecModuleRepo recModuleRepo;
     @Mock private ProductRepo productRepo;
-    @Mock private StoreRepo storeRepo;
+    @Mock private PageRepo pageRepo;
 
     private RecService recService;
 
     @BeforeEach
     void setUp() {
-        recService = new RecService(recModuleRepo, productRepo, storeRepo,
+        recService = new RecService(recModuleRepo, productRepo, pageRepo,
                 List.of(new PopularityHandler(), new CategoryHandler()));
     }
 
@@ -52,8 +52,24 @@ class RecServiceTest {
         return store;
     }
 
+    private Page pageForStore(Store store) {
+        Page page = new Page();
+        page.setStore(store);
+        return page;
+    }
+
+    private Page pageWithId(int id, Store store) {
+        Page page = new Page();
+        page.setId(id);
+        page.setStore(store);
+        return page;
+    }
+
     private RecModule recModuleForStore(int storeId) {
-        return TestFixtures.recModule("Top Picks", 5, storeWithId(storeId));
+        Store store = storeWithId(storeId);
+        RecModule rec = TestFixtures.recModule("Top Picks", 5, pageForStore(store));
+        rec.setId(10);
+        return rec;
     }
 
     // --- getAllRecs ---
@@ -71,7 +87,7 @@ class RecServiceTest {
     @Test
     void getAllRecs_returns200WithList() {
         Store store = storeWithId(1);
-        List<RecModule> recs = List.of(TestFixtures.recModule("Top Picks", 5, store));
+        List<RecModule> recs = List.of(TestFixtures.recModule("Top Picks", 5, pageForStore(store)));
         when(recModuleRepo.findAllByStoreId(1)).thenReturn(recs);
 
         ResponseEntity<List<RecModule>> response = recService.getAllRecs(1);
@@ -83,12 +99,18 @@ class RecServiceTest {
     // --- createRec ---
 
     @Test
-    void createRec_returns201_whenStoreExists() {
+    void createRec_returns201_whenPageExists() {
         Store store = storeWithId(1);
-        RecModule rec = TestFixtures.recModule("Top Picks", 5, store);
-        when(storeRepo.findById(1)).thenReturn(Optional.of(store));
+        Page page = new Page();
+        page.setId(5);
+        page.setStore(store);
+        when(pageRepo.findById(5)).thenReturn(Optional.of(page));
 
-        ResponseEntity<String> response = recService.createRec(1, rec);
+        RecModule rec = new RecModule();
+        rec.setName("Top Picks");
+        rec.setN(5);
+
+        ResponseEntity<String> response = recService.createRec(1, 5, rec);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getBody()).isEqualTo("Created");
@@ -96,10 +118,22 @@ class RecServiceTest {
     }
 
     @Test
-    void createRec_throws404_whenStoreNotFound() {
-        when(storeRepo.findById(99)).thenReturn(Optional.empty());
+    void createRec_throws404_whenPageNotFound() {
+        when(pageRepo.findById(99)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> recService.createRec(99, new RecModule()))
+        assertThatThrownBy(() -> recService.createRec(1, 99, new RecModule()))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+    }
+
+    @Test
+    void createRec_throws404_whenPageBelongsToDifferentStore() {
+        Store otherStore = storeWithId(2);
+        Page page = new Page();
+        page.setId(5);
+        page.setStore(otherStore);
+        when(pageRepo.findById(5)).thenReturn(Optional.of(page));
+
+        assertThatThrownBy(() -> recService.createRec(1, 5, new RecModule()))
                 .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
     }
 
@@ -134,45 +168,58 @@ class RecServiceTest {
     // --- generateRecs ---
 
     @Test
-    void generateRecs_returns200_andSkipsMissingIds() {
+    void generateRecs_returns200_withModulesOnPage() {
         Store store = storeWithIdAndCatalog(1);
         Catalog catalog = store.getCatalog();
-        RecModule rec = TestFixtures.recModule("Top Picks", 2, store);
+        Page page = pageWithId(1, store);
+        RecModule rec = TestFixtures.recModule("Top Picks", 2, page);
         rec.setId(10);
 
         Product p1 = TestFixtures.product("Laptop", 999.99, "desc", "electronics", 4.8, catalog);
         Product p2 = TestFixtures.product("Phone", 499.99, "desc", "electronics", 4.2, catalog);
 
-        when(recModuleRepo.findById(10)).thenReturn(Optional.of(rec));
-        when(recModuleRepo.findById(99)).thenReturn(Optional.empty());
+        when(recModuleRepo.findAllByPageId(1)).thenReturn(List.of(rec));
         when(productRepo.findAllByCatalog(catalog)).thenReturn(List.of(p1, p2));
 
         GenerateRecsRequest request = new GenerateRecsRequest();
-        request.setRecIds(List.of(10, 99));
+        request.setPageId(1);
 
         ResponseEntity<Map<Integer, RecModule>> response = recService.generateRecs(request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).containsKey(10);
-        assertThat(response.getBody()).doesNotContainKey(99);
         assertThat(response.getBody().get(10).getItems()).hasSize(2);
+    }
+
+    @Test
+    void generateRecs_returnsEmptyMap_whenPageHasNoModules() {
+        when(recModuleRepo.findAllByPageId(99)).thenReturn(List.of());
+
+        GenerateRecsRequest request = new GenerateRecsRequest();
+        request.setPageId(99);
+
+        ResponseEntity<Map<Integer, RecModule>> response = recService.generateRecs(request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEmpty();
     }
 
     @Test
     void generateRecs_sortsPopularityByRatingDesc() {
         Store store = storeWithIdAndCatalog(1);
         Catalog catalog = store.getCatalog();
-        RecModule rec = TestFixtures.recModule("Top Picks", 1, store);
+        Page page = pageWithId(1, store);
+        RecModule rec = TestFixtures.recModule("Top Picks", 1, page);
         rec.setId(10);
 
         Product low  = TestFixtures.product("Low",  10.0, "d", "cat", 2.0, catalog);
         Product high = TestFixtures.product("High", 20.0, "d", "cat", 5.0, catalog);
 
-        when(recModuleRepo.findById(10)).thenReturn(Optional.of(rec));
+        when(recModuleRepo.findAllByPageId(1)).thenReturn(List.of(rec));
         when(productRepo.findAllByCatalog(catalog)).thenReturn(List.of(low, high));
 
         GenerateRecsRequest request = new GenerateRecsRequest();
-        request.setRecIds(List.of(10));
+        request.setPageId(1);
         Map<Integer, RecModule> body = recService.generateRecs(request).getBody();
 
         assertThat(body.get(10).getItems().get(0).getProduct().getName()).isEqualTo("High");
@@ -182,24 +229,86 @@ class RecServiceTest {
     void generateRecs_categoryHandler_filtersCorrectly() {
         Store store = storeWithIdAndCatalog(1);
         Catalog catalog = store.getCatalog();
-        RecModule rec = TestFixtures.recModule("Electronics", 5, RecType.CATEGORY, store);
+        Page page = pageWithId(1, store);
+        RecModule rec = TestFixtures.recModule("Electronics", 5, RecType.CATEGORY, page);
         rec.setId(10);
 
         Product match   = TestFixtures.product("Laptop", 999.99, "d", "electronics", 4.5, catalog);
         Product noMatch = TestFixtures.product("Shirt",  29.99,  "d", "clothing",    4.9, catalog);
 
-        when(recModuleRepo.findById(10)).thenReturn(Optional.of(rec));
+        when(recModuleRepo.findAllByPageId(1)).thenReturn(List.of(rec));
         when(productRepo.findAllByCatalog(catalog)).thenReturn(List.of(match, noMatch));
 
         Product clickedProduct = TestFixtures.product("Widget", 50.0, "d", "electronics", 4.0);
         GenerateRecsRequest request = new GenerateRecsRequest();
-        request.setRecIds(List.of(10));
+        request.setPageId(1);
         request.setClickedProduct(clickedProduct);
 
         List<ProductRec> items = recService.generateRecs(request).getBody().get(10).getItems();
 
         assertThat(items).hasSize(1);
         assertThat(items.get(0).getProduct().getName()).isEqualTo("Laptop");
+    }
+
+    @Test
+    void generateRecs_fallsBackToPopularity_whenResultsAreScarce() {
+        Store store = storeWithIdAndCatalog(1);
+        Catalog catalog = store.getCatalog();
+        Page page = pageWithId(1, store);
+        RecModule rec = TestFixtures.recModule("Electronics", 3, RecType.CATEGORY, page);
+        rec.setId(10);
+
+        Product categoryMatch = TestFixtures.product("Laptop", 999.99, "d", "electronics", 4.5, catalog);
+        categoryMatch.setId(1);
+        Product popular1 = TestFixtures.product("Phone", 499.99, "d", "clothing", 4.8, catalog);
+        popular1.setId(2);
+        Product popular2 = TestFixtures.product("Watch", 299.99, "d", "clothing", 4.6, catalog);
+        popular2.setId(3);
+
+        when(recModuleRepo.findAllByPageId(1)).thenReturn(List.of(rec));
+        when(productRepo.findAllByCatalog(catalog)).thenReturn(List.of(categoryMatch, popular1, popular2));
+
+        Product clickedProduct = TestFixtures.product("Widget", 50.0, "d", "electronics", 4.0);
+        GenerateRecsRequest request = new GenerateRecsRequest();
+        request.setPageId(1);
+        request.setClickedProduct(clickedProduct);
+
+        List<ProductRec> items = recService.generateRecs(request).getBody().get(10).getItems();
+
+        assertThat(items).hasSize(3);
+        assertThat(items.get(0).getProduct().getName()).isEqualTo("Laptop");   // category match
+        assertThat(items.get(1).getProduct().getName()).isEqualTo("Phone");    // fallback: highest rated
+        assertThat(items.get(2).getProduct().getName()).isEqualTo("Watch");    // fallback: second highest
+    }
+
+    @Test
+    void generateRecs_doesNotFallBack_whenResultsMeetN() {
+        Store store = storeWithIdAndCatalog(1);
+        Catalog catalog = store.getCatalog();
+        Page page = pageWithId(1, store);
+        RecModule rec = TestFixtures.recModule("Electronics", 2, RecType.CATEGORY, page);
+        rec.setId(10);
+
+        Product match1 = TestFixtures.product("Laptop", 999.99, "d", "electronics", 4.5, catalog);
+        match1.setId(1);
+        Product match2 = TestFixtures.product("Tablet", 599.99, "d", "electronics", 4.3, catalog);
+        match2.setId(2);
+        Product match3 = TestFixtures.product("Phone",  499.99, "d", "electronics", 4.1, catalog);
+        match3.setId(3);
+
+        when(recModuleRepo.findAllByPageId(1)).thenReturn(List.of(rec));
+        when(productRepo.findAllByCatalog(catalog)).thenReturn(List.of(match1, match2, match3));
+
+        Product clickedProduct = TestFixtures.product("Widget", 50.0, "d", "electronics", 4.0);
+        GenerateRecsRequest request = new GenerateRecsRequest();
+        request.setPageId(1);
+        request.setClickedProduct(clickedProduct);
+
+        List<ProductRec> items = recService.generateRecs(request).getBody().get(10).getItems();
+
+        assertThat(items).hasSize(2);
+        assertThat(items.get(0).getProduct().getName()).isEqualTo("Laptop");
+        assertThat(items.get(1).getProduct().getName()).isEqualTo("Tablet");
     }
 
     // --- updateRec ---

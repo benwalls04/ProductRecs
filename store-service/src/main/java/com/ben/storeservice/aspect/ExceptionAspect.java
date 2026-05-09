@@ -1,26 +1,24 @@
 package com.ben.storeservice.aspect;
 
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.Around;
-import org.aspectj.lang.annotation.Aspect;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 @Slf4j
-@Aspect
-@Component
+@RestControllerAdvice
 public class ExceptionAspect {
 
-    @Around("execution(* com.ben.quizappmvn.service.*.*(..))")
-    public Object handleServiceExceptions(ProceedingJoinPoint joinPoint) throws Throwable {
-        try {
-            return joinPoint.proceed();
-        } catch (Exception e) {
-            log.error("Exception in {}.{}",
-                    joinPoint.getSignature().getDeclaringTypeName(),joinPoint.getSignature().getName(), e);
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<String> handleResponseStatus(ResponseStatusException ex) {
+        log.error("Handled ResponseStatusException: {}", ex.getReason(), ex);
+        return ResponseEntity.status(ex.getStatusCode()).body(ex.getReason());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleGeneric(Exception ex) {
+        log.error("Handled unexpected exception: {}", ex.getMessage(), ex);
+        return ResponseEntity.badRequest().body("An unexpected error occurred");
     }
 }
