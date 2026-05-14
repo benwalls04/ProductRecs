@@ -2,7 +2,6 @@ package com.ben.storeservice.model.data;
 
 import com.ben.storeservice.model.Product;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,10 +19,14 @@ import static org.mockito.Mockito.when;
 @DisplayName("DummyRetriever Unit Tests")
 class DummyRetrieverTest {
 
-    @Mock private RestClient restClient;
-    @Mock private RestClient.RequestHeadersUriSpec requestHeadersUriSpec;
-    @Mock private RestClient.RequestHeadersSpec requestHeadersSpec;
-    @Mock private RestClient.ResponseSpec responseSpec;
+    @Mock
+    private RestClient restClient;
+    @Mock
+    private RestClient.RequestHeadersUriSpec requestHeadersUriSpec;
+    @Mock
+    private RestClient.RequestHeadersSpec requestHeadersSpec;
+    @Mock
+    private RestClient.ResponseSpec responseSpec;
 
     @InjectMocks
     private DummyRetriever retriever;

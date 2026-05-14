@@ -1,6 +1,5 @@
 package com.ben.storeservice.controller;
 
-import com.ben.storeservice.model.Catalog;
 import com.ben.storeservice.model.Product;
 import com.ben.storeservice.service.CatalogService;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +12,7 @@ import java.util.List;
 public class CatalogController {
 
     private final CatalogService catalogService;
+
     public CatalogController(CatalogService catalogService) {
         this.catalogService = catalogService;
     }

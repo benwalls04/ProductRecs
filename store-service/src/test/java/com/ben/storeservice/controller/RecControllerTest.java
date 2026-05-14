@@ -41,7 +41,6 @@ class RecControllerTest {
         mockMvc = MockMvcBuilders.standaloneSetup(recController).build();
     }
 
-    // no store ref to avoid circular reference during JSON serialization
     private RecModule simpleRec(String name, int n) {
         RecModule rec = new RecModule();
         rec.setName(name);
@@ -87,6 +86,7 @@ class RecControllerTest {
     void getRec_returns200_whenFound() throws Exception {
         when(recService.getRec(1, 10))
                 .thenReturn(new ResponseEntity<>(simpleRec("Top Picks", 5), HttpStatus.OK));
+
         mockMvc.perform(get("/rec/1/10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Top Picks"));

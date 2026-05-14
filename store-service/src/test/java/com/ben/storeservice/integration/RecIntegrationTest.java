@@ -1,17 +1,19 @@
 package com.ben.storeservice.integration;
 
 import com.ben.storeservice.TestFixtures;
-import com.ben.storeservice.model.Page;
-import com.ben.storeservice.model.RecModule;
-import com.ben.storeservice.model.Store;
+import com.ben.storeservice.feign.RecServiceClient;
+import com.ben.storeservice.model.*;
 import com.ben.storeservice.repo.PageRepo;
+import com.ben.storeservice.repo.ProductRepo;
 import com.ben.storeservice.repo.RecModuleRepo;
 import com.ben.storeservice.repo.StoreRepo;
+import com.ben.storeservice.repo.CatalogRepo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -19,8 +21,13 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -29,26 +36,24 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class RecIntegrationTest {
 
+    @MockitoBean
+    private RecServiceClient recServiceClient;
+
     private MockMvc mockMvc;
 
-    @Autowired
-    private WebApplicationContext webApplicationContext;
+    @Autowired private WebApplicationContext webApplicationContext;
+    @Autowired private StoreRepo storeRepo;
+    @Autowired private CatalogRepo catalogRepo;
+    @Autowired private ProductRepo productRepo;
+    @Autowired private PageRepo pageRepo;
+    @Autowired private RecModuleRepo recModuleRepo;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
     }
-
-    @Autowired
-    private StoreRepo storeRepo;
-
-    @Autowired
-    private RecModuleRepo recModuleRepo;
-
-    @Autowired
-    private PageRepo pageRepo;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     void createRec_persistsToDatabase() throws Exception {
@@ -124,17 +129,17 @@ class RecIntegrationTest {
     @Test
     void generateRecs_returns200_withPopulatedItems() throws Exception {
         Store store = storeRepo.save(TestFixtures.dummyJsonStore());
-        com.ben.storeservice.repo.CatalogRepo catalogRepo = webApplicationContext
-                .getBean(com.ben.storeservice.repo.CatalogRepo.class);
-        com.ben.storeservice.repo.ProductRepo productRepo = webApplicationContext
-                .getBean(com.ben.storeservice.repo.ProductRepo.class);
-
-        com.ben.storeservice.model.Catalog catalog = catalogRepo.save(TestFixtures.catalog(store));
+        Catalog catalog = catalogRepo.save(TestFixtures.catalog(store));
         store.setCatalog(catalog);
-        productRepo.save(TestFixtures.product("Laptop", 999.99, "desc", "electronics", 4.8, catalog));
+        Product product = productRepo.save(
+                TestFixtures.product("Laptop", 999.99, "desc", "electronics", 4.8, catalog));
 
         Page page = pageRepo.save(TestFixtures.page(store));
         RecModule rec = recModuleRepo.save(TestFixtures.recModule("Top Picks", 5, page));
+
+        ProductRec productRec = TestFixtures.productRec(product, 4.8);
+        when(recServiceClient.getRecommendations(eq(RecType.POPULARITY), any()))
+                .thenReturn(List.of(productRec));
 
         mockMvc.perform(post("/rec/generate")
                         .contentType(MediaType.APPLICATION_JSON)

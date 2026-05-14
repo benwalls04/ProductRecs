@@ -1,15 +1,10 @@
 package com.ben.storeservice.service;
 
-import com.ben.storeservice.model.GenerateRecsRequest;
-import com.ben.storeservice.model.Page;
-import com.ben.storeservice.model.Product;
-import com.ben.storeservice.model.ProductRec;
-import com.ben.storeservice.model.RecModule;
-import com.ben.storeservice.model.RecType;
+import com.ben.storeservice.feign.RecServiceClient;
+import com.ben.storeservice.model.*;
 import com.ben.storeservice.repo.PageRepo;
 import com.ben.storeservice.repo.ProductRepo;
 import com.ben.storeservice.repo.RecModuleRepo;
-import com.ben.storeservice.service.rec.RecTypeHandler;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -31,14 +26,14 @@ public class RecService {
     private final RecModuleRepo recModuleRepo;
     private final ProductRepo productRepo;
     private final PageRepo pageRepo;
-    private final Map<RecType, RecTypeHandler> handlerMap;
+    private final RecServiceClient recServiceClient;
 
-    public RecService(RecModuleRepo recModuleRepo, ProductRepo productRepo, PageRepo pageRepo, List<RecTypeHandler> handlers) {
+    public RecService(RecModuleRepo recModuleRepo, ProductRepo productRepo, PageRepo pageRepo,
+                      RecServiceClient recServiceClient) {
         this.recModuleRepo = recModuleRepo;
         this.productRepo = productRepo;
         this.pageRepo = pageRepo;
-        this.handlerMap = handlers.stream()
-                .collect(Collectors.toMap(RecTypeHandler::getSupportedType, h -> h));
+        this.recServiceClient = recServiceClient;
     }
 
     public ResponseEntity<String> createRec(Integer storeId, Integer pageId, RecModule rec) {
@@ -70,10 +65,12 @@ public class RecService {
         for (RecModule module : recModuleRepo.findAllByPageId(request.getPageId())) {
             List<Product> products = productRepo.findAllByCatalog(module.getPage().getStore().getCatalog());
 
-            RecTypeHandler handler = handlerMap.get(module.getRecType());
-            List<ProductRec> items = handler != null
-                    ? handler.recommend(module.getN(), request.getClickedProduct(), products)
-                    : List.of();
+            RecRequest recRequest = new RecRequest();
+            recRequest.setN(module.getN());
+            recRequest.setClickedProduct(request.getClickedProduct());
+            recRequest.setProducts(products);
+
+            List<ProductRec> items = recServiceClient.getRecommendations(module.getRecType(), recRequest);
 
             if (items.size() < module.getN()) {
                 Set<Integer> alreadyIncluded = items.stream()
@@ -86,13 +83,14 @@ public class RecService {
                         .collect(Collectors.toList());
 
                 int deficit = module.getN() - items.size();
-                RecTypeHandler popularityHandler = handlerMap.get(RecType.POPULARITY);
-                if (popularityHandler != null) {
-                    List<ProductRec> fallback = popularityHandler.recommend(deficit, null, remaining);
-                    List<ProductRec> combined = new ArrayList<>(items);
-                    combined.addAll(fallback);
-                    items = combined;
-                }
+                RecRequest fallbackRequest = new RecRequest();
+                fallbackRequest.setN(deficit);
+                fallbackRequest.setProducts(remaining);
+
+                List<ProductRec> fallback = recServiceClient.getRecommendations(RecType.POPULARITY, fallbackRequest);
+                List<ProductRec> combined = new ArrayList<>(items);
+                combined.addAll(fallback);
+                items = combined;
             }
 
             module.setItems(items);

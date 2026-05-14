@@ -68,6 +68,13 @@ public class TestFixtures {
         return page("Home", store);
     }
 
+    public static Store storeWithCatalog(String name, StoreType type) {
+        Store store = store(name, type);
+        Catalog catalog = catalog(store);
+        store.setCatalog(catalog);
+        return store;
+    }
+
     public static RecModule recModule(String name, Integer n, RecType recType, Page page) {
         RecModule rec = new RecModule();
         rec.setName(name);
@@ -86,13 +93,6 @@ public class TestFixtures {
         rec.setProduct(product);
         rec.setScore(score);
         return rec;
-    }
-
-    public static Store storeWithCatalog(String name, StoreType type) {
-        Store store = store(name, type);
-        Catalog catalog = catalog(store);
-        store.setCatalog(catalog);
-        return store;
     }
 
     public static Catalog catalogWithProducts(Store store, int count) {
