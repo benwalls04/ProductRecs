@@ -42,3 +42,5 @@
 **/HELP.md
 **/*.stackdump
 CLAUDE.md
+
+**/logs/

@@ -1,2 +1,0 @@
-2026-05-14T17:35:10.969-04:00  INFO 25316 --- [rec-service] [main] c.ben.rec_service.RecServiceApplication  : Starting RecServiceApplication using Java 17.0.7 with PID 25316 (C:\Users\benwa\OneDrive\Desktop\side_projects\ProductRecs\rec-service\target\classes started by benwa in C:\Users\benwa\OneDrive\Desktop\side_projects\ProductRecs)
-2026-05-14T17:35:10.982-04:00  INFO 25316 --- [rec-service] [main] c.ben.rec_service.RecServiceApplication  : No active profile set, falling back to 1 default profile: "default"
