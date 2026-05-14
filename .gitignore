@@ -1,5 +1,44 @@
+# Environment
 **/.env
 **/.env.*
 .env
+
+# Claude / IDE
 **/.claude/
 **/.idea/
+**/.vscode/
+
+# Maven
+**/target/
+**/.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### IntelliJ IDEA ###
+*.iws
+*.iml
+*.ipr
+
+### STS ###
+**/.apt_generated
+**/.classpath
+**/.factorypath
+**/.project
+**/.settings
+**/.springBeans
+**/.sts4-cache
+
+### NetBeans ###
+**/nbproject/private/
+**/nbbuild/
+**/dist/
+**/nbdist/
+**/.nb-gradle/
+**/build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Misc
+**/HELP.md
+**/*.stackdump
+CLAUDE.md
